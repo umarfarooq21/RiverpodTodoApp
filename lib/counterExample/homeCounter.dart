@@ -11,11 +11,54 @@ final switchProvider = StateProvider<bool>((ref){
   return false;
 }); 
 
+//TODO: With Both Statful and Statless Widgets, Statfull has Lifecyle methods ;)
+class GomeCounter extends ConsumerStatefulWidget {
+  const GomeCounter({super.key});
+
+  @override
+  ConsumerState<GomeCounter> createState() => _GomeCounterState();
+  
+}
+
+class _GomeCounterState extends ConsumerState<GomeCounter> {
+  @override
+  Widget build(BuildContext context) {
+    print('build');
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Counter App'),
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Consumer(builder: (context, ref, child) {
+            final count = ref.watch(counter);
+            print('only building counter label');
+            return Text('Counter Value: $count', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),);
+            }),
+        
+          Row( 
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(counter.notifier).state++;
+                },
+                child: const Text('+'),
+              ),
+            ],
+          )
+          
+        ],
+      ),
+    );
+  }
+}
+
 
 class HomeCounter extends ConsumerWidget {
   const HomeCounter({super.key});
-
-  //get child => null;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

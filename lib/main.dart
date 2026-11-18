@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const HomeCounter(), // counter example using provider
+      home: const GomeCounter(), // counter example using provider
       //home: const HomeScreen(), //simple provider
       //home: const HomeStreamprovider(), //stream provider
     );
