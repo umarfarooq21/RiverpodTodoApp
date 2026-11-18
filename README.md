@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  A hands-on Flutter demo that explores <b>Riverpod</b> — from a <code>ConsumerWidget</code> counter app with <code>StateProvider</code>, to CRUD with <code>StateNotifierProvider</code>, live updates with <code>StreamProvider</code>, and async work with <code>FutureProvider</code>.
+  A hands-on Flutter demo that explores <b>Riverpod</b> — counter apps with <code>ConsumerWidget</code> and <code>ConsumerStatefulWidget</code>, a Switch demo, CRUD with <code>StateNotifierProvider</code>, live updates with <code>StreamProvider</code>, and async work with <code>FutureProvider</code>.
 </p>
 
 ---
@@ -17,7 +17,9 @@
 
 | Feature | Provider / Widget | What it shows |
 |--------|-------------------|----------------|
-| Counter app | `StateProvider` + `ConsumerWidget` / `Consumer` | Rebuild only the watched UI |
+| Counter (stateless) | `StateProvider` + `ConsumerWidget` | Rebuild only the watched UI |
+| Counter (stateful) | `StateProvider` + `ConsumerStatefulWidget` | Same Riverpod API with lifecycle access |
+| Switch toggle | `StateProvider<bool>` + `Consumer` | Boolean state with Switch widget |
 | Todo CRUD | `StateNotifierProvider` | Add, update, and delete items |
 | Live stock ticker | `StreamProvider` | Continuous stream updates + error retry |
 | Async data | `FutureProvider` | One-shot async loading patterns |
@@ -34,7 +36,7 @@ lib/
 ├── item.dart
 ├── item_provider.dart            # StateNotifierProvider (CRUD)
 ├── counterExample/
-│   └── homeCounter.dart          # ConsumerWidget + StateProvider counter
+│   └── homeCounter.dart          # ConsumerWidget + ConsumerStatefulWidget + Switch
 ├── streamProvider/
 │   ├── stream_provider.dart      # StreamProvider (live stock price)
 │   └── home_streamProvider.dart
@@ -68,13 +70,18 @@ flutter run
 
 ## Providers in this project
 
-### 1. StateProvider + ConsumerWidget — Counter app
+### 1. StateProvider — Counter + Switch
 
-A simple counter using `StateProvider`. The screen is a `ConsumerWidget`, and the count text is wrapped in a nested `Consumer` so only that part rebuilds when the value changes.
+Shared providers used by both widget styles:
 
 ```dart
 final counter = StateProvider<int>((ref) => 0);
+final switchProvider = StateProvider<bool>((ref) => false);
+```
 
+#### ConsumerWidget (stateless)
+
+```dart
 class HomeCounter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,10 +95,41 @@ class HomeCounter extends ConsumerWidget {
 }
 ```
 
-Increment with:
+#### ConsumerStatefulWidget (stateful)
+
+Use this when you need lifecycle methods (`initState`, `dispose`, etc.) while still using Riverpod via `ref`.
 
 ```dart
-ref.read(counter.notifier).state++;
+class GomeCounter extends ConsumerStatefulWidget {
+  const GomeCounter({super.key});
+
+  @override
+  ConsumerState<GomeCounter> createState() => _GomeCounterState();
+}
+
+class _GomeCounterState extends ConsumerState<GomeCounter> {
+  @override
+  Widget build(BuildContext context) {
+    final count = ref.watch(counter);
+    return Text('Counter Value: $count');
+  }
+}
+```
+
+#### Switch with StateProvider
+
+```dart
+Consumer(
+  builder: (context, ref, child) {
+    final isOn = ref.watch(switchProvider);
+    return Switch(
+      value: isOn,
+      onChanged: (value) {
+        ref.read(switchProvider.notifier).state = value;
+      },
+    );
+  },
+)
 ```
 
 ### 2. StateNotifierProvider — Todo CRUD
@@ -123,7 +161,8 @@ Loads data once (API-style) and rebuilds the UI when the future completes.
 ## Switch demos in `main.dart`
 
 ```dart
-home: const HomeCounter(),             // ConsumerWidget + StateProvider counter
+home: const GomeCounter(),             // ConsumerStatefulWidget counter
+// home: const HomeCounter(),          // ConsumerWidget counter + Switch
 // home: const HomeScreen(),           // CRUD with StateNotifierProvider
 // home: const HomeStreamprovider(),   // StreamProvider demo
 // home: const HomeFutureProvider(),   // FutureProvider demo
@@ -146,8 +185,10 @@ dependencies:
 ## Learning goals
 
 - Wrap the app with `ProviderScope`
-- Use `ConsumerWidget` and nested `Consumer` for scoped rebuilds
+- Use both `ConsumerWidget` and `ConsumerStatefulWidget`
+- Use nested `Consumer` for scoped rebuilds
 - Use `ref.watch` to listen and `ref.read` to update
+- Manage bool/int UI state with `StateProvider`
 - Handle `AsyncValue` states: `data`, `loading`, `error`
 - Invalidate providers to retry failed streams/futures
 - Keep UI and state logic separated
