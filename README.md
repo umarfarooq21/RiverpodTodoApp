@@ -8,15 +8,16 @@
 </p>
 
 <p align="center">
-  A hands-on Flutter demo that explores <b>Riverpod</b> providers — from simple CRUD with <code>StateNotifierProvider</code> to live updates with <code>StreamProvider</code> and async work with <code>FutureProvider</code>.
+  A hands-on Flutter demo that explores <b>Riverpod</b> — from a <code>ConsumerWidget</code> counter app with <code>StateProvider</code>, to CRUD with <code>StateNotifierProvider</code>, live updates with <code>StreamProvider</code>, and async work with <code>FutureProvider</code>.
 </p>
 
 ---
 
 ## Features
 
-| Feature | Provider | What it shows |
-|--------|----------|----------------|
+| Feature | Provider / Widget | What it shows |
+|--------|-------------------|----------------|
+| Counter app | `StateProvider` + `ConsumerWidget` / `Consumer` | Rebuild only the watched UI |
 | Todo CRUD | `StateNotifierProvider` | Add, update, and delete items |
 | Live stock ticker | `StreamProvider` | Continuous stream updates + error retry |
 | Async data | `FutureProvider` | One-shot async loading patterns |
@@ -29,14 +30,16 @@
 ```text
 lib/
 ├── main.dart
-├── home_screen.dart          # CRUD todo UI
+├── home_screen.dart              # CRUD todo UI
 ├── item.dart
-├── item_provider.dart        # StateNotifierProvider (CRUD)
+├── item_provider.dart            # StateNotifierProvider (CRUD)
+├── counterExample/
+│   └── homeCounter.dart          # ConsumerWidget + StateProvider counter
 ├── streamProvider/
-│   ├── stream_provider.dart  # StreamProvider (live stock price)
+│   ├── stream_provider.dart      # StreamProvider (live stock price)
 │   └── home_streamProvider.dart
 ├── futureProvider/
-│   ├── future_provider.dart  # FutureProvider demos
+│   ├── future_provider.dart      # FutureProvider demos
 │   └── home_futureProvider.dart
 └── favoriteSearch/
     ├── fav_provider.dart
@@ -65,7 +68,33 @@ flutter run
 
 ## Providers in this project
 
-### 1. StateNotifierProvider — Todo CRUD
+### 1. StateProvider + ConsumerWidget — Counter app
+
+A simple counter using `StateProvider`. The screen is a `ConsumerWidget`, and the count text is wrapped in a nested `Consumer` so only that part rebuilds when the value changes.
+
+```dart
+final counter = StateProvider<int>((ref) => 0);
+
+class HomeCounter extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final count = ref.watch(counter);
+        return Text('Counter Value: $count');
+      },
+    );
+  }
+}
+```
+
+Increment with:
+
+```dart
+ref.read(counter.notifier).state++;
+```
+
+### 2. StateNotifierProvider — Todo CRUD
 
 Manage a list of items with add / update / delete through a notifier.
 
@@ -75,7 +104,7 @@ final itemProvider = StateNotifierProvider<itemNotifier, List<Item>>((ref) {
 });
 ```
 
-### 2. StreamProvider — Live stock price
+### 3. StreamProvider — Live stock price
 
 Simulates a real-time stock feed that emits a new price every second and handles loading / error / retry with `AsyncValue.when`.
 
@@ -85,7 +114,7 @@ final stockPriceProvider = StreamProvider<double>((ref) async* {
 });
 ```
 
-### 3. FutureProvider — Async data
+### 4. FutureProvider — Async data
 
 Loads data once (API-style) and rebuilds the UI when the future completes.
 
@@ -94,8 +123,9 @@ Loads data once (API-style) and rebuilds the UI when the future completes.
 ## Switch demos in `main.dart`
 
 ```dart
+home: const HomeCounter(),             // ConsumerWidget + StateProvider counter
 // home: const HomeScreen(),           // CRUD with StateNotifierProvider
-home: const HomeStreamprovider(),      // StreamProvider demo
+// home: const HomeStreamprovider(),   // StreamProvider demo
 // home: const HomeFutureProvider(),   // FutureProvider demo
 ```
 
@@ -116,7 +146,8 @@ dependencies:
 ## Learning goals
 
 - Wrap the app with `ProviderScope`
-- Use `ConsumerWidget` and `ref.watch` / `ref.read`
+- Use `ConsumerWidget` and nested `Consumer` for scoped rebuilds
+- Use `ref.watch` to listen and `ref.read` to update
 - Handle `AsyncValue` states: `data`, `loading`, `error`
 - Invalidate providers to retry failed streams/futures
 - Keep UI and state logic separated

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod_app/counterExample/homeCounter.dart';
 import 'package:flutter_riverpod_app/home_screen.dart';
 import 'package:flutter_riverpod_app/streamProvider/home_streamProvider.dart';
 
@@ -17,8 +18,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      //home: const HomeScreen(), simple provider
-      home: const HomeStreamprovider(), //stream provider
+      home: const HomeCounter(), // counter example using provider
+      //home: const HomeScreen(), //simple provider
+      //home: const HomeStreamprovider(), //stream provider
     );
   }
 }

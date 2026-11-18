@@ -8,6 +8,7 @@ const HomeScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final item = ref.watch(itemProvider);
+    print('build new widgetsssss');
 
     return Scaffold(
       appBar: AppBar(
