@@ -7,6 +7,10 @@ final counter = StateProvider<int>((ref){
   return 0;
 });
 
+final switchProvider = StateProvider<bool>((ref){
+  return false;
+}); 
+
 
 class HomeCounter extends ConsumerWidget {
   const HomeCounter({super.key});
@@ -30,6 +34,14 @@ class HomeCounter extends ConsumerWidget {
             print('build 2');
             return Text('Counter Value: $count', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),);
             }),
+          Consumer(builder: (context, ref, child) {
+            final swwtch = ref.watch(switchProvider);
+            print('switch changed');
+            return Switch(value: swwtch, onChanged: (value) {
+              ref.read(switchProvider.notifier).state = value;
+            });
+            }),
+
           // Text('Counter Value: $count', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),),
         Row( 
           mainAxisAlignment: MainAxisAlignment.center,
