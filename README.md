@@ -5,11 +5,12 @@
   <img src="https://img.shields.io/badge/Riverpod-3.3-blue?style=for-the-badge" alt="Riverpod" />
   <img src="https://img.shields.io/badge/Dart-3.11-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart" />
   <img src="https://img.shields.io/badge/HTTP-API-green?style=for-the-badge" alt="HTTP API" />
+  <img src="https://img.shields.io/badge/Animations-Splash-teal?style=for-the-badge" alt="Splash Animations" />
   <img src="https://img.shields.io/badge/State%20Management-Riverpod-purple?style=for-the-badge" alt="State Management" />
 </p>
 
 <p align="center">
-  A hands-on Flutter demo that explores <b>Riverpod</b> — counter apps with <code>ConsumerWidget</code> / <code>ConsumerStatefulWidget</code>, REST API fetching with <code>FutureProvider</code> + <code>http</code>, CRUD with <code>StateNotifierProvider</code>, and live updates with <code>StreamProvider</code>.
+  A hands-on Flutter demo that explores <b>Riverpod</b> — an animated splash intro, REST API fetching with <code>FutureProvider</code> + pull-to-refresh, counter apps with <code>ConsumerWidget</code> / <code>ConsumerStatefulWidget</code>, CRUD with <code>StateNotifierProvider</code>, and live updates with <code>StreamProvider</code>.
 </p>
 
 ---
@@ -18,7 +19,9 @@
 
 | Feature | Provider / Widget | What it shows |
 |--------|-------------------|----------------|
-| API posts list | `FutureProvider` + `http` | Fetch JSON from REST API, loading/error UI |
+| Animated splash | `NotifierProvider` + `ConsumerStatefulWidget` | Eye-pleasing logo, orbit, and fade/scale intro |
+| API posts list | `FutureProvider.autoDispose` + `http` | Fresh API fetch, no cached list on refresh |
+| Pull to refresh | `RefreshIndicator` + `ref.invalidate` | Re-call API; SnackBar on failure |
 | Counter (stateless) | `StateProvider` + `ConsumerWidget` | Rebuild only the watched UI |
 | Counter (stateful) | `StateProvider` + `ConsumerStatefulWidget` | Same Riverpod API with lifecycle access |
 | Switch toggle | `StateProvider<bool>` + `Consumer` | Boolean state with Switch widget |
@@ -36,8 +39,11 @@ lib/
 ├── home_screen.dart              # CRUD todo UI
 ├── item.dart
 ├── item_provider.dart            # StateNotifierProvider (CRUD)
+├── splash/
+│   ├── splash_screen.dart        # Animated splash (ConsumerStatefulWidget)
+│   └── splash_provider.dart      # SplashPhase NotifierProvider
 ├── APIProvider/
-│   ├── post_provider.dart        # FutureProvider + http GET posts
+│   ├── post_provider.dart        # FutureProvider.autoDispose + http GET
 │   └── home_api_future_provider.dart
 ├── counterExample/
 │   └── homeCounter.dart          # ConsumerWidget + ConsumerStatefulWidget + Switch
@@ -70,42 +76,51 @@ flutter pub get
 flutter run
 ```
 
+App flow: **Splash animation → API posts screen**
+
 ---
 
 ## Providers in this project
 
-### 1. FutureProvider — API using Future Provider
+### 1. Splash — Riverpod + animations
 
-Fetches posts from [JSONPlaceholder](https://jsonplaceholder.typicode.com/posts) with the `http` package, maps JSON to `PostModel`, and handles loading / error / retry in the UI.
+Animated intro with gradient background, glowing logo, orbiting dots, floating orbs, and a fade/scale transition into the home screen.
 
 ```dart
-final postProvider = FutureProvider<List<PostModel>>((ref) async {
+enum SplashPhase { animating, ready }
+
+final splashPhaseProvider =
+    NotifierProvider<SplashPhaseNotifier, SplashPhase>(SplashPhaseNotifier.new);
+```
+
+Uses `ConsumerStatefulWidget` with multiple `AnimationController`s for coordinated motion.
+
+### 2. FutureProvider — API + pull to refresh
+
+Fetches posts from [JSONPlaceholder](https://jsonplaceholder.typicode.com/posts).
+
+- `FutureProvider.autoDispose` — no kept cache when unused
+- Pull-to-refresh clears data with `ref.invalidate`, then fetches again
+- Timeout + `SocketException` / `TimeoutException` handling
+- SnackBar toast when refresh fails
+
+```dart
+final postProvider = FutureProvider.autoDispose<List<PostModel>>((ref) async {
   final response = await http
       .get(Uri.parse('https://jsonplaceholder.typicode.com/posts'))
-      .timeout(const Duration(seconds: 2));
-
-  if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body);
-    return data.map((item) => PostModel.fromJson(item)).toList();
-  }
-  throw ('something went wrong');
+      .timeout(const Duration(seconds: 10));
+  // ...
 });
 ```
 
-UI with `AsyncValue.when`:
-
 ```dart
-postList.when(
-  data: (data) => ListView.builder(...),
-  loading: () => const CircularProgressIndicator(),
-  error: (error, stack) => TextButton(
-    onPressed: () => ref.invalidate(postProvider),
-    child: Text('Error: $error'),
-  ),
-);
+onRefresh: () async {
+  ref.invalidate(postProvider);
+  await ref.read(postProvider.future);
+},
 ```
 
-### 2. StateProvider — Counter + Switch
+### 3. StateProvider — Counter + Switch
 
 ```dart
 final counter = StateProvider<int>((ref) => 0);
@@ -115,7 +130,7 @@ final switchProvider = StateProvider<bool>((ref) => false);
 - `HomeCounter` → `ConsumerWidget` (stateless)
 - `GomeCounter` → `ConsumerStatefulWidget` (stateful + lifecycle)
 
-### 3. StateNotifierProvider — Todo CRUD
+### 4. StateNotifierProvider — Todo CRUD
 
 ```dart
 final itemProvider = StateNotifierProvider<itemNotifier, List<Item>>((ref) {
@@ -123,7 +138,7 @@ final itemProvider = StateNotifierProvider<itemNotifier, List<Item>>((ref) {
 });
 ```
 
-### 4. StreamProvider — Live stock price
+### 5. StreamProvider — Live stock price
 
 ```dart
 final stockPriceProvider = StreamProvider<double>((ref) async* {
@@ -133,14 +148,10 @@ final stockPriceProvider = StreamProvider<double>((ref) async* {
 
 ---
 
-## Switch demos in `main.dart`
+## App entry (`main.dart`)
 
 ```dart
-home: APIProviderHome(),               // API using FutureProvider + http
-// home: const HomeCounter(),          // ConsumerWidget counter + Switch
-// home: const GomeCounter(),          // ConsumerStatefulWidget counter
-// home: const HomeScreen(),           // CRUD with StateNotifierProvider
-// home: const HomeStreamprovider(),   // StreamProvider demo
+home: const SplashScreen(), // animated splash → APIProviderHome
 ```
 
 ---
@@ -160,13 +171,14 @@ dependencies:
 
 ## Learning goals
 
+- Build an animated splash with `ConsumerStatefulWidget` + Riverpod
 - Wrap the app with `ProviderScope`
-- Fetch REST APIs with `FutureProvider` + `http`
+- Fetch REST APIs with `FutureProvider.autoDispose` + `http`
+- Pull-to-refresh without showing stale cached data
+- Show user-friendly errors with SnackBar
 - Handle `AsyncValue` states: `data`, `loading`, `error`
-- Retry failed requests with `ref.invalidate`
 - Use both `ConsumerWidget` and `ConsumerStatefulWidget`
-- Use `ref.watch` to listen and `ref.read` to update
-- Manage UI state with `StateProvider` / `StateNotifierProvider`
+- Use `ref.watch` / `ref.read` / `ref.invalidate`
 - Keep UI and state logic separated
 
 ---
